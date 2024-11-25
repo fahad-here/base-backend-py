@@ -23,6 +23,7 @@ INSTALLED_APPS = [
   'corsheaders',
   
   # Local apps
+  'core.mt5',
   'shared',
   'apps.cp.authentication.apps.AuthConfig',
   # 'apps.cp.profiles',

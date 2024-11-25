@@ -20,6 +20,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# MT5
+bases/
+
 # Virtual Environment
 venv/
 ENV/

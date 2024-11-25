@@ -1,0 +1,135 @@
+from typing import Optional, Dict, List
+import MT5Manager
+from ..constants import MT5ServerConfig
+from ..exceptions import MT5ConnectionError
+
+class MT5ConnectionManager:
+  def __init__(self, server_config: MT5ServerConfig, data_folder: Optional[str] = None):
+    """
+    Initialize MT5 Connection Manager
+    
+    Args:
+      server_config: Server configuration containing connection details
+      data_folder: Optional custom data folder path for MT5Manager
+    """
+    self.server_config = server_config
+    self._manager = MT5Manager.ManagerAPI(data_folder) if data_folder else MT5Manager.ManagerAPI()
+    self._connected = False
+        
+  def connect(self) -> bool:
+    """
+    Attempts to connect to MT5 server using the configured IPs with failover
+    """
+    if self._connected:
+      return True
+        
+    for ip in self.server_config.ips:
+      try:
+        connection_result = self._manager.Connect(
+          ip,
+          self.server_config.username,
+          self.server_config.manager_password,
+          MT5Manager.ManagerAPI.EnPumpModes.PUMP_MODE_FULL,
+          120000  # 2 minute timeout
+        )
+        
+        if connection_result:
+          self._connected = True
+          return True
+              
+      except Exception as e:
+        last_error = MT5Manager.LastError()
+        continue
+            
+    raise MT5ConnectionError(
+      f"Failed to connect to all IPs for server {self.server_config.name}. "
+      f"Last error: {MT5Manager.LastError()}"
+    )
+      
+  def disconnect(self):
+    """
+    Safely disconnect from MT5 server
+    """
+    if self._connected:
+      self._manager.Disconnect()
+      self._connected = False
+          
+  @property
+  def manager(self) -> MT5Manager.ManagerAPI:
+    """
+    Returns active MT5Manager instance
+    
+    Raises:
+        MT5ConnectionError: If not connected to MT5 server
+    """
+    if not self._connected:
+      raise MT5ConnectionError("Not connected to MT5 server")
+    return self._manager
+      
+  def __enter__(self):
+    """Context manager entry"""
+    self.connect()
+    return self
+      
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    """Context manager exit"""
+    self.disconnect()
+
+class MT5ConnectionPool:
+  def __init__(self, server_configs: List[MT5ServerConfig], data_folder: Optional[str] = None):
+    """
+    Initialize MT5 Connection Pool
+    
+    Args:
+      server_configs: List of server configurations
+      data_folder: Optional custom data folder path for MT5Manager
+    """
+    self.connections: Dict[str, MT5ConnectionManager] = {}
+    self.data_folder = data_folder
+    
+    for config in server_configs:
+      self.connections[config.name] = MT5ConnectionManager(config, data_folder)
+  
+  def connect_all(self) -> Dict[str, bool]:
+    """
+    Attempts to connect to all configured MT5 servers
+    Returns dict of server names and their connection status
+    """
+    results = {}
+    for name, connection in self.connections.items():
+      try:
+        connection.connect()
+        results[name] = True
+      except MT5ConnectionError as e:
+        results[name] = False
+    return results
+  
+  def disconnect_all(self):
+    """
+    Disconnects from all MT5 servers
+    """
+    for connection in self.connections.values():
+      connection.disconnect()
+  
+  def get_connection(self, server_name: str) -> MT5ConnectionManager:
+    """
+    Get connection manager for specific server
+    
+    Args:
+      server_name: Name of the server to get connection for
+        
+    Raises:
+      KeyError: If server name doesn't exist
+    """
+    if server_name not in self.connections:
+      raise KeyError(f"No connection found for server: {server_name}")
+    return self.connections[server_name]
+  
+  def __enter__(self):
+    """Context manager entry"""
+    self.connect_all()
+    return self
+  
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    """Context manager exit"""
+    self.disconnect_all()

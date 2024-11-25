@@ -75,8 +75,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"    # AMQP protocol port
-      - "15672:15672"  # Management UI
+      - "5673:5672"    # AMQP protocol port
+      - "15673:15672"  # Management UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
