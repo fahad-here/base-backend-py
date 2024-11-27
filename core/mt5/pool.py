@@ -3,7 +3,6 @@ from .connection.manager import MT5ConnectionManager
 from .constants import MT5ServerConfig, MT5_SERVERS
 from .exceptions import MT5ConnectionError
 from .sinks import MT5UserSink, MT5DealSink
-
 class MT5ConnectionPools:
   _instance = None
   
@@ -14,6 +13,7 @@ class MT5ConnectionPools:
     return cls._instance
   
   def __init__(self):
+    print("DEBUG: MT5ConnectionPools.__init__ called")  # Debug print
     if self._initialized:
       return
         
@@ -22,14 +22,17 @@ class MT5ConnectionPools:
     self._initialized = True
     self._user_sink = MT5UserSink()
     self._deal_sink = MT5DealSink()
+    print("DEBUG: MT5ConnectionPools initialized")  # Debug print
     
     # Connect to all servers during initialization
-    try:
-      connection_results = self.connect_all()
-      print("MT5 Connection Results:", connection_results)
-      self.setup_sinks()
-    except Exception as e:
-      print(f"Failed to connect to MT5 servers: {str(e)}")
+    # try:
+    #   connection_results = self.connect_all()
+    #   print("MT5 Connection Results:", connection_results)
+    #   self.setup_sinks()
+    #   print("MT5 sinks setup")
+    #   self.add_deal_callback('deal_add', on_deal_add)
+    # except Exception as e:
+    #   print(f"Failed to connect to MT5 servers: {str(e)}")
   
   def setup_sinks(self):
     """Setup sinks for all connections"""
@@ -46,6 +49,7 @@ class MT5ConnectionPools:
   
   def add_deal_callback(self, event: str, callback: Callable):
     """Add callback for deal events"""
+    print(f"Adding deal callback for {event}")
     self._deal_sink.add_callback(event, callback)
   
   @property

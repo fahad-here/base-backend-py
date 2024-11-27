@@ -23,7 +23,8 @@ INSTALLED_APPS = [
   'corsheaders',
   
   # Local apps
-  'core.mt5',
+  # 'core.mt5',
+  'core.mt5.apps.MT5Config',
   'shared',
   'apps.cp.authentication.apps.AuthConfig',
   # 'apps.cp.profiles',
@@ -126,7 +127,7 @@ LOGGING = {
     'loggers': {
         'app': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'INFO',
         },
         'elasticsearch': {
             'handlers': ['console'],
