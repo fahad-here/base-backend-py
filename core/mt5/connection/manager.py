@@ -2,6 +2,7 @@ from typing import Optional, Dict, List
 import MT5Manager
 from ..constants import MT5ServerConfig
 from ..exceptions import MT5ConnectionError
+from ..sinks import MT5UserSink, MT5DealSink
 
 class MT5ConnectionManager:
   def __init__(self, server_config: MT5ServerConfig, data_folder: Optional[str] = None):
@@ -15,6 +16,8 @@ class MT5ConnectionManager:
     self.server_config = server_config
     self._manager = MT5Manager.ManagerAPI(data_folder) if data_folder else MT5Manager.ManagerAPI()
     self._connected = False
+    self._user_sink: Optional[MT5UserSink] = None
+    self._deal_sink: Optional[MT5DealSink] = None
         
   def connect(self) -> bool:
     """
@@ -51,6 +54,10 @@ class MT5ConnectionManager:
     Safely disconnect from MT5 server
     """
     if self._connected:
+      if self._user_sink:
+        self._manager.UserUnsubscribe(self._user_sink)
+      if self._deal_sink:
+        self._manager.DealUnsubscribe(self._deal_sink)
       self._manager.Disconnect()
       self._connected = False
           
@@ -74,6 +81,28 @@ class MT5ConnectionManager:
   def __exit__(self, exc_type, exc_val, exc_tb):
     """Context manager exit"""
     self.disconnect()
+    
+  def setup_user_sink(self, sink: MT5UserSink) -> bool:
+    """Setup user event sink"""
+    if not self._connected:
+      raise MT5ConnectionError("Must be connected to setup sinks")
+    
+    if self._user_sink:
+      self._manager.UserUnsubscribe(self._user_sink)
+    
+    self._user_sink = sink
+    return self._manager.UserSubscribe(sink)
+    
+  def setup_deal_sink(self, sink: MT5DealSink) -> bool:
+    """Setup deal event sink"""
+    if not self._connected:
+      raise MT5ConnectionError("Must be connected to setup sinks")
+    
+    if self._deal_sink:
+      self._manager.DealUnsubscribe(self._deal_sink)
+    
+    self._deal_sink = sink
+    return self._manager.DealSubscribe(sink)
 
 class MT5ConnectionPool:
   def __init__(self, server_configs: List[MT5ServerConfig], data_folder: Optional[str] = None):

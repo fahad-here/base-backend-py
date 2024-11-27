@@ -126,7 +126,7 @@ LOGGING = {
     'loggers': {
         'app': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'DEBUG',
         },
         'elasticsearch': {
             'handlers': ['console'],
